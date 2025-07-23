@@ -203,12 +203,9 @@ class PayloniumParser(BaseParser):
             if "login" in response.url:
                 print("Сессия истекла. Повторная аутентификация...")
                 self._is_authenticated = False
-                self.authenticate()
+                self.login()
                 response = self.session.get(GET_ORDERS_URL)  # Повторный запрос
             data = response.text
-            # with open("test.html", "r", encoding='utf-8') as f:
-            #     data = f.read()
-
             return self._parse_orders_data(data=data)
 
         except requests.RequestException as e:

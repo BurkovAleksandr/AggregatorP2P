@@ -1,25 +1,33 @@
-from celery import shared_task
-from .models import ParserAccount
-from .tasks import run_parser_for_account
-from celery import shared_task
-from .registry import PARSER_REGISTRY
-from .models import ParserAccount
-from listings.services import save_parsed_order
 
 
-@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True)
-def run_parser(self, account_id: int):
-    account = ParserAccount.objects.get(pk=account_id)
-    ParserCls = PARSER_REGISTRY[account.parser_type]
-    parser = ParserCls(account.login, account.password, account.account_name, account.telegram_id)
-    
-    parser.authenticate()
-    orders = parser.get_new_orders()
-    
-    for order in orders:
-        save_parsed_order(order, source=account.parser_type, account_name=account.account_name)
+from celery import shared_task
+from parsers.factory import get_parser_instance
+from parsers.models import ParserAccount, Platform
+
 
 @shared_task
-def schedule_all_parsers():
-    for acc in ParserAccount.objects.filter(is_enabled=True):
-        run_parser_for_account.delay(acc.id)
+def run_platform_parsers():
+    for platform in Platform.objects.filter(is_active=True):
+        parse_all_accounts_for_platform.delay(platform.code)
+
+
+@shared_task
+def parse_all_accounts_for_platform(platform_code):
+    platform = Platform.objects.get(code=platform_code)
+    accounts = ParserAccount.objects.filter(platform=platform, is_active=True)
+
+    for acc in accounts:
+        run_account_parser.delay(acc.id)
+
+
+@shared_task
+def run_account_parser(account_id):
+    account = ParserAccount.objects.select_related("platform").get(id=account_id)
+
+    parser = get_parser_instance(account)
+
+    if not parser.is_logged_in():
+        parser.login()
+
+    listings = parser.fetch_listings()
+    save_listings_to_db(account, listings)
