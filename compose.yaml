@@ -1,11 +1,9 @@
-version: '3.9'
-
 services:
   backend:
     build:
       context: ./backend
-    container_name: django_app
-    env_file: .env
+    container_name: backend
+    env_file: ./backend/.env
     volumes:
       - ./backend:/app
     command: >
@@ -14,51 +12,24 @@ services:
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     ports:
       - "8000:8000"
+    environment:
+      - DB_HOST=db
     depends_on:
       - db
-      - redis
+
 
   db:
     image: postgres:15-alpine
     container_name: postgres_db
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis
     ports:
-      - "6379:6379"
-
-  celery_worker:
-    build:
-      context: ./backend
-    container_name: celery_worker
-    command: celery -A core worker -l info
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - backend
-      - redis
-      - db
-    env_file: .env
-
-  celery_beat:
-    build:
-      context: ./backend
-    container_name: celery_beat
-    command: celery -A core beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - backend
-      - redis
-      - db
-    env_file: .env
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: aggregatorp2p
+      POSTGRES_USER: aggregator
+      POSTGRES_PASSWORD: securepassword
 
 
   # frontend:

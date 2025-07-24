@@ -8,7 +8,9 @@ from bs4 import BeautifulSoup
 from collections import namedtuple
 import re
 from base import BaseParser
-from core import settings
+
+from listings.models import Listing
+import settings
 
 # URL для входа и для получения заявок
 LOGIN_URL = "https://profile.paylonium.com/login"
@@ -19,11 +21,10 @@ ParsedOrder = namedtuple(
 
 
 class PayloniumParser(BaseParser):
-    def __init__(self, login, password, account_name, telegram_id):
+    def __init__(self, login, password, account_name):
         self._login = login
         self._password = password
         self.account_name = account_name
-        self.telegram_id = telegram_id
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -101,14 +102,9 @@ class PayloniumParser(BaseParser):
             function: Вызов исходной функции если авторизация есть
         """
 
-        @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if not self._is_authenticated:
-                raise Exception("Autentification required")
-            else:
-                return func(self, *args, **kwargs)
-
-        return wrapper
+    def require_auth(self):
+        if not self._is_authenticated:
+            raise Exception("Authentication required")
 
     def safe_filename(self, name: str) -> str:
         """Удаляет опасные символы из имени файла"""
@@ -190,13 +186,13 @@ class PayloniumParser(BaseParser):
             )
         return orders
 
-    @autentification_required
     def get_new_orders(self) -> List[ParsedOrder]:
         """Получает новые заявки с сайта
 
         Returns:
             List[ParsedOrder]: Список заявок
         """
+        self.require_auth()
         try:
             response = self.session.get(GET_ORDERS_URL)
             response.raise_for_status()
@@ -223,3 +219,22 @@ class PayloniumParser(BaseParser):
             ):
                 self._is_authenticated = False
                 self.login()
+
+    def save_listing(self, listing: ParsedOrder):
+        Listing.objects.update_or_create(
+            external_id=listing.paylonium_id,
+            defaults={
+                "datetime": listing.datetime,
+                "platform": "paylonium",
+                "type": "BUY",
+                "amount": listing.amount,
+                "recipient_details": listing.recipient_details,
+                "bank": listing.bank,
+                "link": "example",
+            },
+        )
+
+    def handle_parsing_process(self):
+        listings = self.get_new_orders()
+        for listing in listings:
+            self.save_listing(listing)

@@ -4,5 +4,5 @@ from listings import views
 
 
 urlpatterns = [
-    path("listings/", views.ListingsAPI.as_view()),
+    path("listing/", views.ListingsAPI.as_view(), name="listing"),
 ]
