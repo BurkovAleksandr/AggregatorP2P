@@ -12,8 +12,3 @@ class ListingsAPI(APIView):
         return HttpResponse("penis")
 
 
-class ParserAccountsAPI(APIView):
-    class InputSerializer(Serializer): ...
-
-    def get(self, request: HttpRequest):
-        pass

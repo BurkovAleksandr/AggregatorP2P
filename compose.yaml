@@ -31,6 +31,11 @@ services:
       POSTGRES_USER: aggregator
       POSTGRES_PASSWORD: securepassword
 
+  parser:
+    build: 
+      context: ./parser
+    container_name: parser
+    command: ["python", "main.py"]
 
   # frontend:
   #   build:

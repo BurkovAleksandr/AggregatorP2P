@@ -9,7 +9,6 @@ from collections import namedtuple
 import re
 from base import BaseParser
 
-from listings.models import Listing
 import settings
 
 # URL для входа и для получения заявок
@@ -221,18 +220,15 @@ class PayloniumParser(BaseParser):
                 self.login()
 
     def save_listing(self, listing: ParsedOrder):
-        Listing.objects.update_or_create(
-            external_id=listing.paylonium_id,
-            defaults={
-                "datetime": listing.datetime,
-                "platform": "paylonium",
-                "type": "BUY",
-                "amount": listing.amount,
-                "recipient_details": listing.recipient_details,
-                "bank": listing.bank,
-                "link": "example",
-            },
-        )
+        data = {
+            "datetime": listing.datetime,
+            "platform": "paylonium",
+            "type": "BUY",
+            "amount": listing.amount,
+            "recipient_details": listing.recipient_details,
+            "bank": listing.bank,
+            "link": "example",
+        }
 
     def handle_parsing_process(self):
         listings = self.get_new_orders()
