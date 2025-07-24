@@ -1,6 +1,11 @@
 from django.db import models
 
 
+class Platform(models.Model):
+    name = models.CharField("Название", max_length=50)
+    code = models.CharField("Кодовое название", max_length=50)
+
+
 class Listing(models.Model):
     """Модель сделки
 
@@ -20,7 +25,9 @@ class Listing(models.Model):
 
     external_id = models.IntegerField()
     datetime = models.DateTimeField()
-    platform = models.CharField()
+    platform = models.ForeignKey(
+        Platform, verbose_name="Платформа", on_delete=models.CASCADE
+    )
     type = models.CharField(choices=[("BUY", "buy"), ("SELL", "sell")], null=True)
     amount = models.FloatField()
     recipient_details = models.CharField()  # Реквизит получателя
