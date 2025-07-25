@@ -1,8 +1,10 @@
 import functools
+import json
 import os
 import pickle
 import time
 from typing import List
+import aiohttp
 import requests
 from bs4 import BeautifulSoup
 from collections import namedtuple
@@ -24,7 +26,12 @@ class PayloniumParser(BaseParser):
         self._login = login
         self._password = password
         self.account_name = account_name
-        self.session = requests.Session()
+        self.cookie_jar = aiohttp.CookieJar(unsafe=True)
+        self.session = aiohttp.ClientSession(cookie_jar=self.cookie_jar)
+        self.cookie_path = os.path.join(
+            settings.SESSIONS_PATH,
+            f"{self.safe_filename(self.account_name)}.cookies",
+        )
         self.session.headers.update(
             {
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -50,7 +57,7 @@ class PayloniumParser(BaseParser):
         )
         self._is_authenticated = False
 
-    def parse_auth_data(self, response: requests.Response):
+    def parse_auth_data(self, response: str):
         """Парсит ответ запроса авторизации
 
         Args:
@@ -69,9 +76,9 @@ class PayloniumParser(BaseParser):
         else:
             return True
 
-    def login(self):
+    async def login(self):
         """Выполняет вход в систему и сохраняет сессию."""
-        if self.load_session():
+        if await self.load_session():
             return
 
         print(f"Выполняю авторизацию для {self._login}")
@@ -80,10 +87,13 @@ class PayloniumParser(BaseParser):
             "password": self._password,
         }
 
-        response = self.session.post(LOGIN_URL, data=login_data, allow_redirects=True)
+        response = await self.session.post(
+            LOGIN_URL, data=login_data, allow_redirects=True
+        )
         response.raise_for_status()  # Если статус не 200 кидает HTTPError
+        html = await response.text()
         self.parse_auth_data(
-            response.content
+            html
         )  # Если в контенте страницы есть ошибка выкидывает Exception
         self._is_authenticated = True
         self.save_session()
@@ -111,48 +121,39 @@ class PayloniumParser(BaseParser):
 
     def save_session(self):
         """Сохранение сессии"""
-        with open(
-            os.path.join(
-                settings.SESSIONS_PATH, f"{self.safe_filename(self.account_name)}.pkl"
-            ),
-            "wb",
-        ) as f:
-            pickle.dump(self.session.cookies, f)
+        self.cookie_jar.save(
+            self.cookie_path,
+        )
 
-    def load_session(self):
+    async def load_session(self):
         """Загрузка сессии
 
         Returns:
             bool: True если успех, False - если провал
         """
-        try:
-            with open(
-                os.path.join(
-                    settings.SESSIONS_PATH,
-                    f"{self.safe_filename(self.account_name)}.pkl",
-                ),
-                "rb",
-            ) as f:
-                cookies = pickle.load(f)
-                self.session.cookies.update(cookies)
-                if self.check_session():
-                    print(f"Сессия для {self._login} успешно загружена")
+
+        if os.path.exists(self.cookie_path):
+            try:
+                self.session.cookie_jar.load(self.cookie_path)
+                if await self.check_session():
+                    print(f"[{self.account_name}] Сессия успешно загружена.")
                     self._is_authenticated = True
                     return True
-
-        except FileNotFoundError:
-            return False
-        print(f"Сессия для {self._login} не валидна")
+                else:
+                    print(f"[{self.account_name}] Сессия невалидна.")
+            except Exception as e:
+                print(f"[{self.account_name}] Ошибка при загрузке сессии: {e}")
         return False
 
-    def check_session(self):
-        response = self.session.get(GET_ORDERS_URL, allow_redirects=False)
+    async def check_session(self):
+        response = await self.session.get(GET_ORDERS_URL, allow_redirects=False)
         # response.raise_for_status()
-        if response.status_code == 200 and "login" not in response.url:
+        if response.status == 200 and "login" not in response.url:
             return True
         return False
 
     def _parse_orders_data(self, data: str):
+
         soup = BeautifulSoup(data, "lxml")
         orders = []
 
@@ -185,7 +186,7 @@ class PayloniumParser(BaseParser):
             )
         return orders
 
-    def get_new_orders(self) -> List[ParsedOrder]:
+    async def get_new_orders(self) -> List[ParsedOrder]:
         """Получает новые заявки с сайта
 
         Returns:
@@ -193,33 +194,28 @@ class PayloniumParser(BaseParser):
         """
         self.require_auth()
         try:
-            response = self.session.get(GET_ORDERS_URL)
-            response.raise_for_status()
-            if "login" in response.url:
-                print("Сессия истекла. Повторная аутентификация...")
+            response = await self.session.get(GET_ORDERS_URL)
+            if response.status == 401 or "login" in str(response.url):
+                print(f"[{self.account_name}] Сессия истекла, переавторизация...")
                 self._is_authenticated = False
-                self.login()
-                response = self.session.get(GET_ORDERS_URL)  # Повторный запрос
-            data = response.text
-            return self._parse_orders_data(data=data)
+                await self.login()
+                response = await self.session.get(GET_ORDERS_URL)
 
-        except requests.RequestException as e:
-            print(f"Ошибка сети при получении заявок: {e}")
+            response.raise_for_status()
+            html = await response.text()
+            return self._parse_orders_data(html)
+
+        except aiohttp.ClientError as e:
+            print(f"[{self.account_name}] Ошибка сети: {e}")
             return []
         except Exception as e:
-            print(f"Ошибка парсинга страницы: {e}")
+            print(f"[{self.account_name}] Ошибка парсинга: {e}")
             with open(f"debug_{time.time()}.html", "w", encoding="utf-8") as f:
-                f.write(response.text)  # Сохраним соддержимое страницы для отладки
+                f.write(await response.text())
             return []
-        except requests.exceptions.HTTPError as exc:
-            if (
-                exc
-                == "401 Client Error: Unauthorized for url: https://profile.paylonium.com/p/getnew"
-            ):
-                self._is_authenticated = False
-                self.login()
 
     def save_listing(self, listing: ParsedOrder):
+        # TODO Сделать проверку на наличиие заявки в бд
         data = {
             "datetime": listing.datetime,
             "platform": "paylonium",
@@ -229,8 +225,37 @@ class PayloniumParser(BaseParser):
             "bank": listing.bank,
             "link": "example",
         }
+        with open("res.json", "a") as f:
+            json.dump(data, fp=f)
+        print(data)
 
-    def handle_parsing_process(self):
-        listings = self.get_new_orders()
-        for listing in listings:
-            self.save_listing(listing)
+    async def start(self):
+        """Выполняет вход и подготавливает сессию."""
+        try:
+            await self.login()
+        except Exception as e:
+            print(f"[{self.account_name}] Ошибка во время первоначального входа: {e}")
+            raise  # Пробрасываем ошибку выше, чтобы задача-worker не запустилась
+
+    async def stop(self):
+        """Закрывает сессию."""
+        if self.session and not self.session.closed:
+            await self.session.close()
+            print(f"[{self.account_name}] Сессия закрыта.")
+
+    async def fetch_and_save(self):
+        """
+        Выполняет один цикл получения и сохранения заявок.
+        Предполагается, что логин уже выполнен.
+        """
+        try:
+            listings = await self.get_new_orders()
+            for listing in listings:
+                self.save_listing(listing)
+            # Если заявок нет, можно вывести сообщение
+            if not listings:
+                print(f"[{self.account_name}] Новых заявок не найдено.")
+        except Exception as e:
+            # Логируем ошибку, но не останавливаем весь цикл.
+            # Возможно, это временная проблема с сетью или сайтом.
+            print(f"[{self.account_name}] Ошибка в цикле получения данных: {e}")
