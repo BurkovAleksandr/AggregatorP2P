@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # замените URL вашей БД
-DB_URL = "postgresql+psycopg2://myuser:mypassword@localhost:5432/mydb"
+DB_URL = "postgresql+psycopg2://aggregator:securepassword@localhost:5432/aggregatorp2p"
 
 # создаём движок
 engine = create_engine(DB_URL, echo=True, future=True)

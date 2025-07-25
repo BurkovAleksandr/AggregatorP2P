@@ -23,11 +23,9 @@ class Listing(models.Model):
 
     """
 
-    external_id = models.IntegerField()
+    external_id = models.CharField()
     datetime = models.DateTimeField()
-    platform = models.ForeignKey(
-        Platform, verbose_name="Платформа", on_delete=models.CASCADE
-    )
+    platform = models.CharField()
     type = models.CharField(choices=[("BUY", "buy"), ("SELL", "sell")], null=True)
     amount = models.FloatField()
     recipient_details = models.CharField()  # Реквизит получателя
@@ -35,6 +33,14 @@ class Listing(models.Model):
     bank = models.CharField()
     currency_rate = models.FloatField(null=True)
     link = models.CharField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_external_id",
+                fields=["external_id"],
+            )
+        ]
 
     def __repr__(self):
         return f"<Order(id={self.id}, external_id='{self.external_id}', account='{self.link}')>"

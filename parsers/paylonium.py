@@ -10,9 +10,15 @@ from bs4 import BeautifulSoup
 from collections import namedtuple
 import re
 from base import BaseParser
-
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
+from models import Listing, ListingType
 import settings
+from sqlalchemy.orm import sessionmaker
+from database import engine  # здесь у тебя должен быть engine
 
+Session = sessionmaker(bind=engine)
+db_session = Session()
 # URL для входа и для получения заявок
 LOGIN_URL = "https://profile.paylonium.com/login"
 GET_ORDERS_URL = os.getenv("GET_ORDERS_URL")
@@ -98,20 +104,12 @@ class PayloniumParser(BaseParser):
         self._is_authenticated = True
         self.save_session()
 
-    def autentification_required(func):
-        """Декоратор проверки авторизации
-
-        Args:
-            func (function): Принимает функцию для которой необходима авторизация перед использованием
+    def require_auth(self):
+        """Проверка авторизации
 
         Raises:
             Exception: Возвращает базовый Exception с текстом "Autentification required"
-
-        Returns:
-            function: Вызов исходной функции если авторизация есть
         """
-
-    def require_auth(self):
         if not self._is_authenticated:
             raise Exception("Authentication required")
 
@@ -148,7 +146,7 @@ class PayloniumParser(BaseParser):
     async def check_session(self):
         response = await self.session.get(GET_ORDERS_URL, allow_redirects=False)
         # response.raise_for_status()
-        if response.status == 200 and "login" not in response.url:
+        if response.status == 200 and "login" not in str(response.url):
             return True
         return False
 
@@ -203,6 +201,8 @@ class PayloniumParser(BaseParser):
 
             response.raise_for_status()
             html = await response.text()
+            # with open("getnew.htm", "r", encoding="utf-8") as f:
+            #     html = f.read()
             return self._parse_orders_data(html)
 
         except aiohttp.ClientError as e:
@@ -214,20 +214,61 @@ class PayloniumParser(BaseParser):
                 f.write(await response.text())
             return []
 
-    def save_listing(self, listing: ParsedOrder):
-        # TODO Сделать проверку на наличиие заявки в бд
+    def save_listing(self, parsed_order: ParsedOrder):
         data = {
-            "datetime": listing.datetime,
+            "external_id": parsed_order.paylonium_id,
+            "datetime": parsed_order.datetime,
             "platform": "paylonium",
             "type": "BUY",
-            "amount": listing.amount,
-            "recipient_details": listing.recipient_details,
-            "bank": listing.bank,
+            "amount": parsed_order.amount,
+            "recipient_details": parsed_order.recipient_details,
+            "bank": parsed_order.bank,
             "link": "example",
         }
+
+        # Логируем для отладки
         with open("res.json", "a") as f:
             json.dump(data, fp=f)
+            f.write("\n")
         print(data)
+
+        try:
+            existing = (
+                db_session.query(Listing)
+                .filter_by(
+                    external_id=parsed_order.paylonium_id,
+                    platform="paylonium",
+                )
+                .one_or_none()
+            )
+
+            if existing:
+                # Обновляем существующую заявку
+                existing.datetime = parsed_order.datetime
+                existing.type = ListingType("BUY")
+                existing.amount = parsed_order.amount
+                existing.recipient_details = parsed_order.recipient_details
+                existing.bank = parsed_order.bank
+                existing.link = "example"
+            else:
+                # Создаём новую
+                listing = Listing(
+                    external_id=parsed_order.paylonium_id,
+                    datetime=parsed_order.datetime,
+                    platform="paylonium",
+                    type=ListingType("BUY"),
+                    amount=parsed_order.amount,
+                    recipient_details=parsed_order.recipient_details,
+                    bank=parsed_order.bank,
+                    link="example",
+                )
+                db_session.add(listing)
+
+            db_session.commit()
+
+        except SQLAlchemyError as e:
+            db_session.rollback()
+            print(f"Ошибка при сохранении заявки: {e}")
 
     async def start(self):
         """Выполняет вход и подготавливает сессию."""
