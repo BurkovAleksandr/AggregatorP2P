@@ -1,0 +1,172 @@
+/* static/css/tickets.css */
+
+/* Общие стили для контейнера */
+
+.create-ticket-form-container {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7fa;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center; /* по центру по горизонтали */
+  align-items: flex-start; /* по центру по вертикали */
+  height: 100vh;
+}
+
+/* #content {
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+} */
+
+/* Стили для формы */
+#create-ticket-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Скрываем стандартные <p> от as_p, чтобы управлять отступами вручную */
+#create-ticket-form p {
+  margin-bottom: 16px;
+}
+
+/* Стили для <label> внутри формы */
+#create-ticket-form label {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+  color: #333333;
+}
+
+/* Стили для <input>, <textarea> и <select> */
+#create-ticket-form input[type="text"],
+#create-ticket-form input[type="email"],
+#create-ticket-form input[type="password"],
+#create-ticket-form textarea,
+#create-ticket-form select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border: 1px solid #cbd5e0; /* мягкий серый */
+  border-radius: 4px;
+  background-color: #fdfdfe;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+#create-ticket-form input[type="text"]:focus,
+#create-ticket-form input[type="email"]:focus,
+#create-ticket-form input[type="password"]:focus,
+#create-ticket-form textarea:focus,
+#create-ticket-form select:focus {
+  border-color: #667eea; /* синий акцент */
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  outline: none;
+}
+
+/* Стили для <textarea> (если используется) */
+#create-ticket-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Кнопка сабмита */
+#create-ticket-btn {
+  margin-top: 12px;
+  padding: 12px 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ffffff;
+  background-color: #667eea; /* синий акцент */
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+#create-ticket-btn:hover {
+  background-color: #5a67d8; /* чуть темнее при наведении */
+}
+
+#create-ticket-btn:active {
+  transform: scale(0.98);
+}
+
+/* Обработка ошибок и подсказок (если Django выводит <ul class="errorlist">) */
+.errorlist {
+  margin: 4px 0 12px 0;
+  padding: 8px 12px;
+  background-color: #fed7d7; /* бледно-розовый фон для ошибок */
+  border: 1px solid #f56565; /* красный */
+  border-radius: 4px;
+  color: #c53030;
+  list-style: none;
+}
+
+/* Стили для отдельных пунктов ошибок */
+.errorlist li {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Медиазапрос: адаптивность на мобильных */
+@media (max-width: 640px) {
+  #content {
+    margin: 16px;
+    padding: 16px;
+    max-width: 100%;
+  }
+  #create-ticket-btn {
+    font-size: 0.95rem;
+    padding: 10px 0;
+  }
+}
+/* 
+#notification-container {
+  position: fixed;
+  top: 20px; /* отступ сверху */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999; /* поверх всего */
+  width: 90%;
+  max-width: 500px;
+  pointer-events: none; /* чтобы клик не блокировал остальной интерфейс, пока оно будет висеть */
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  margin-top: 8px;
+}
+
+/* Стили «успех» */
+.notification.success {
+  background-color: #48bb78; /* зелёный оттенок */
+}
+
+/* Стили «ошибка» */
+.notification.error {
+  background-color: #f56565; /* красный оттенок */
+}
+
+/* Когда нужно показать уведомление, добавляем класс .show */
+.notification.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Если нужно — плавно убрать */
+.notification.hide {
+  opacity: 0;
+  transform: translateY(-20px);
+} */

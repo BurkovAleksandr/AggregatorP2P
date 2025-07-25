@@ -1,0 +1,117 @@
+.main-page-structure {
+  display: flex;
+  flex-direction: row;
+}
+
+/* Сайдбар */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  top: 56px;
+  left: 0;
+  width: 140px;
+  background-color: #bec4f8;
+  padding: 24px 0;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar li {
+  margin: 8px 0;
+  transition: transform 0.2s ease;
+}
+
+.sidebar li a {
+  display: block;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  color: #1e3a8a;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar li:hover a {
+  background-color: #d6defb;
+  color: #1b3a6b;
+  transform: translateX(4px);
+}
+
+.sidebar li a.active {
+  background-color: #a0c4f7;
+  color: #1b3a6b;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(41, 128, 185, 0.4);
+  transform: translateX(6px);
+  pointer-events: none;
+}
+
+/* Кнопка-гамбургер */
+.sidebar-toggle {
+  position: fixed;
+  top: 4px;
+  left: 10px;
+  z-index: 1001;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: none; /* по умолчанию скрыта */
+}
+
+/* Контент с учётом сайдбара */
+.main-content {
+  align-items: center;
+  margin-left: 0;
+  width: 100%;
+  padding-left: 32px;
+  padding-right: 32px;
+  background: #f7fafc;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Адаптив: при ширине экрана до 768px — меню скрыто */
+@media (max-width: 768px) {
+  .main-page-structure {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    position: absolute;
+    top: 56px;
+    left: 0;
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    width: 100%;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-toggle {
+    display: block;
+  }
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}
+        Заголовок по умолчанию
+      {% endblock title %}
+    </title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+          rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'ticket/css/ticket_list.css' %}">
+    <link rel="stylesheet" href="{% static 'base/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'base/css/notification.css' %}">
+    <link rel="stylesheet" href="{% static 'base/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'base/css/footer.css' %}">
+    {% block extra_css %}
+    {% endblock extra_css %}
+  </head>
+  <body>
+    {% include "includes/header.html" %}
+    <div class="main-page-structure">
+      {% block sidemenu %}
+      {% endblock sidemenu %}
+      <main class="main-content">
+        <div id="context" data-api-base-url="{{ api_base_url }}"></div>
+        <div id="notification-container"></div>
+        {% block content %}
+        {% endblock content %}
+      </main>
+      {% include "includes/footer.html" %}
+    </div>
+    {% block extra_js %}
+    {% endblock extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname.replace(/\/$/, ""); // без конечного слеша
+            const menuLinks = document.querySelectorAll('.menu-item a');
+
+            menuLinks.forEach(link => {
+                let linkPath = link.getAttribute('href').replace(/\/$/, "");
+                if (linkPath === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+  </body>
+</html>

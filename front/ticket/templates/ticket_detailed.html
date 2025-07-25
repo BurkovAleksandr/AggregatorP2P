@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+  <main class="container">
+    <div class="ticket-header">
+      <h1>Заявка #{{ ticket.id }}</h1>
+      <h2 class="creation-date">{{ ticket.created_at|date:"d.m.Y H:i" }}</h2>
+    </div>
+    <p>
+      <strong>Статус:</strong> {{ ticket.status }}
+    </p>
+    <article class="ticket-text">
+      <h2>Описание заявки:</h2>
+      {{ ticket.text }}
+    </article>
+    {% if ticket.comment %}
+      <h2>Текст комментария</h2>
+      <article class="comment-text">{{ ticket.comment }}</article>
+    {% endif %}
+    {% if ticket.report_text %}
+      <h2>Текст отчета</h2>
+      <article class="report-text">{{ ticket.report_text }}</article>
+    {% endif %}
+    {% if ticket.subdivisions %}
+      <div class="subdivisions">
+        <h2>Задействованные подразделения:</h2>
+        <ol>
+          {% for subdivision in ticket.subdivisions %}<li>{{ subdivision }}</li>{% endfor %}
+        </ol>
+      </div>
+    {% endif %}
+    {% comment %} TODO Дописать нужные данные заявки и убрать кнопку создать отчет для закрытых заявок{% endcomment %}
+    <div class="actions-container" id="actions">
+      <ul class="action-list">
+        {% if ticket.status != "Закрыта" and  ticket.status != "Создана" %}
+          <li>
+            <a href={% url "create-report" ticket_id=ticket.id %}>Создать отчет</a>
+          </li>
+        {% endif %}
+        <li>
+          <a href="#" onclick="addComment({{ ticket.id }})" class="add-comment">Комментарий</a>
+        </li>
+        {% if ticket.report_id %}
+          <li>
+            <a onclick="addPhotoUpload({{ ticket.report_id }})">Добавить фото</a>
+          </li>
+        {% endif %}
+        {% if ticket.status == "Создана" %}
+          <li>
+            <a onclick="acceptTicket({{ ticket.id }})">Принять заявку</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+    <div id="comment-container"></div>
+  </main>
+{% endblock content %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'ticket/css/ticket_detailed.css' %}" />
+  <link rel="stylesheet" href="{% static 'ticket/css/add_comment.css' %}" />
+{% endblock extra_css %}
+{% block extra_js %}
+  <script src="{% static 'ticket/js/set_comment.js' %}"></script>
+  <script src="{% static 'ticket/js/base.js' %}"></script>
+  <script src="{% static 'ticket/js/accept_ticket.js' %}"></script>
+  <script src="{% static 'ticket/js/add_photo.js' %}"></script>
+{% endblock extra_js %}

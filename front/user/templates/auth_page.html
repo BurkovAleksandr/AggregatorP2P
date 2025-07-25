@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Авторизация</title>
+    <!-- Google Font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="{% static 'user/css/login_styles.css' %}" />
+  </head>
+  <body>
+    <main class="container login-container">
+      <h1>Авторизация</h1>
+
+      <form class="login-form" action="{% url 'auth' %}" method="post">
+        {% csrf_token %}
+
+        <div class="form-fields">
+          {{ auth_form.as_p }}
+        </div>
+
+        {% if form.errors or form.non_field_errors %}
+        <div class="form-errors">
+          {% if form.non_field_errors %} {{ form.non_field_errors }} {% else %}
+          <p>Пожалуйста, исправьте ошибки ниже.</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn-submit">Войти</button>
+      </form>
+    </main>
+  </body>
+</html>
